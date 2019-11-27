@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>PLC4J Scraper Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.js"></script>
+</head>
+<body>
+<div id="app">
+    <button v-on:click="startScraper">Start Scraper</button>
+    <button v-on:click="stopScraper">Stop Scraper</button>
+    <button v-on:click="getLatest">Get Latest</button>
+    <p>Latest: {{ latest }}</p>
+</div>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data: {
+            latest: ""
+        },
+        methods: {
+            startScraper: function () {
+                console.log("start scraper");
+                axios.post("/scraper-service/start");
+            },
+            stopScraper: function () {
+                console.log("stop scraper");
+                axios.post("/scraper-service/stop");
+            },
+            getLatest: function () {
+                var vue = this;
+                console.log("get latest");
+                axios.get("/scraper-service/latest").then(function (response) {
+                   console.log(response);
+                   vue.latest = response.data;
+                });
+            }
+        }
+    });
+    app.latest = "test";
+</script>
+</body>
+</html>
