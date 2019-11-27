@@ -1,0 +1,18 @@
+sources:
+  S7: s7://172.30.74.65/0/0
+
+jobs:
+  - name: example
+    triggerConfig: (SCHEDULED,100)
+    sources:
+      - S7
+    fields:
+      Int: '%DB101.DBW78:INT'
+      DInt: '%DB101.DBD80:DINT'
+      SinusReal: '%DB101.DBD118:REAL'
+      String: '%DB101.DBX124:STRING'
+      NegativeInt: '%DB101.DBW380:INT'
+      I0.0: '%I0.0:BOOL'
+      Q0.0: '%Q0.0:BOOL'
+      Merkerbit: '%M0.1:BOOL'
+      MerkerInt: '%MW2:INT'
