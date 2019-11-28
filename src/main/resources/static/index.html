@@ -41,7 +41,19 @@
             }
         }
     });
-    app.latest = "test";
+    var loc = window.location;
+    var wsUri = "";
+    if (loc.protocol == "https") {
+        wsUri += "wss://";
+    } else {
+        wsUri += "ws://";
+    }
+    wsUri += loc.host;
+    wsUri += "/scraper-service";
+    var ws = new WebSocket(wsUri);
+    ws.onmessage = function (event) {
+        app.latest = event.data;
+    }
 </script>
 </body>
 </html>
