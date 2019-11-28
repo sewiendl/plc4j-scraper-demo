@@ -10,8 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.concurrent.CountDownLatch;
 
 @Configuration
 public class ScraperConfiguration {
@@ -22,16 +20,8 @@ public class ScraperConfiguration {
     }
 
     @Bean
-    public Scraper scraper() throws ScraperException, IOException {
-        return new TriggeredScraperImpl(scrapeConfig(), (job, alias, results) -> {
-            System.out.println(LocalDateTime.now() + " job=" + job + "; alias=" + alias + "; results=" + results);
-        },
-                new TriggerCollectorImpl(new PlcDriverManager()));
-    }
-
-    @Bean
-    public CountDownLatch countDownLatch() {
-        return new CountDownLatch(1);
+    public Scraper scraper(ScraperResultHandler resultHandler) throws ScraperException, IOException {
+        return new TriggeredScraperImpl(scrapeConfig(), resultHandler, new TriggerCollectorImpl(new PlcDriverManager()));
     }
 
 }

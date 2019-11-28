@@ -12,18 +12,26 @@ public class ScraperService {
 
     private final Scraper scraper;
 
+    private final Object lock = new Object();
+
     public ScraperService(Scraper scraper) {
         this.scraper = scraper;
     }
 
     @ManagedOperation
     public void start() {
-        scraper.start();
+        synchronized (lock) {
+            if (scraper.getNumberOfActiveTasks() == 0) {
+                scraper.start();
+            }
+        }
     }
 
     @ManagedOperation
     public void stop() {
-        scraper.stop();
+        synchronized (lock) {
+            scraper.stop();
+        }
     }
 
     @ManagedAttribute
