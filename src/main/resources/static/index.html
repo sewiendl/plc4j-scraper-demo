@@ -8,19 +8,196 @@
     <title>PLC4J Scraper Demo</title>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.js"></script>
-</head>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.15/lodash.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous"></head>
 <body>
-<div id="app">
-    <button v-on:click="startScraper">Start Scraper</button>
-    <button v-on:click="stopScraper">Stop Scraper</button>
-    <button v-on:click="getLatest">Get Latest</button>
-    <p>Latest: {{ latest }}</p>
+<div id="app" class="container">
+    <h1>PLC4J Scraper Demo</h1>
+    <div class="alert alert-info">
+        <h2>Usage</h2>
+        <ol>
+            <li>Update Scraper (configure sources and jobs as needed; see provided example)</li>
+            <li>Start Scraper</li>
+            <li>Observe output under <i>latest</i></li>
+            <li>Stop Scraper</li>
+        </ol>
+    </div>
+    <div>
+        <button v-on:click="startScraper" class="btn btn-success">Start Scraper</button>
+        <button v-on:click="stopScraper" class="btn btn-danger">Stop Scraper</button>
+        <button v-on:click="getLatest" class="btn btn-light">Get Latest</button>
+    </div>
+    <div>
+        <p>Latest: {{ latest }}</p>
+    </div>
+    <div>
+        <button v-on:click="updateScraper(scraperConfig)" class="btn btn-primary">Update Scraper</button>
+        <div>
+            Sources:
+            <ul>
+                <plcsource v-for="source in scraperConfig.sources" :key="source.alias" :alias="source.alias" :connection-string="source.connectionString" @remove-source="removeSource"></plcsource>
+                <addplcsource @add-source="addSource"></addplcsource>
+            </ul>
+        </div>
+        <div>
+            Jobs:
+            <ul>
+                <plcjob v-for="job in scraperConfig.jobs" :job="job" :key="job.name" @remove-job="removeJob"></plcjob>
+                <addplcjob :available-sources="scraperConfig.sources" @add-job="addJob"></addplcjob>
+            </ul>
+        </div>
+    </div>
 </div>
 <script>
+    function toScraperConfig(configObject) {
+        var sources = Object.assign({}, ...(configObject.sources.map(item => ({[item.alias]: item.connectionString}))));
+        var jobs = configObject.jobs.map(item => ({
+            name: item.name,
+            triggerConfig: item.triggerConfig,
+            sources: item.sources,
+            fields: Object.assign({}, ...(item.fields.map(fieldItem => ({[fieldItem.tag]: fieldItem.address}))))
+        }));
+        var retVal = {
+            sources: sources,
+            jobs: jobs
+        };
+        console.log("scraperConfig ", retVal);
+        return retVal;
+    }
+
+    Vue.component('plcsource', {
+        props: ['alias', 'connectionString'],
+        template: `
+            <li>{{ alias }} ({{ connectionString }}) <button @click="removeSource" class="btn btn-sm">Remove source</button></li>
+        `,
+        methods: {
+            removeSource() {
+                this.$emit('remove-source', _.cloneDeep({
+                    alias: this.alias,
+                    connectionString: this.connectionString
+                }))
+            }
+        }
+    });
+
+    Vue.component('addplcsource', {
+        template: `
+            <li><input type="text" v-model="newSource.alias" placeholder="alias"> <input type="text" v-model="newSource.connectionString" placeholder="connection string"> <button @click="addSource" class="btn btn-sm">Add source</button></li>
+        `,
+        data() {
+            return {
+                newSource: {
+                    alias: "",
+                    connectionString: ""
+                }
+            }
+        },
+        methods: {
+            addSource() {
+                this.$emit('add-source', _.cloneDeep(this.newSource));
+            }
+        }
+    });
+
+    Vue.component('plcjob', {
+        props: ['job'],
+        template: `
+            <li>
+                Name: {{ job.name }}<br/>
+                Trigger config: {{ job.triggerConfig }}<br/>
+                Sources:
+                <ul>
+                    <li v-for="source in job.sources">{{ source }}</li>
+                </ul>
+                Fields:
+                <ul>
+                    <li v-for="field in job.fields">{{ field.tag }}:{{ field.address }}</li>
+                </ul>
+                <button @click="removeJob" class="btn btn-sm">Remove job</button>
+            </li>
+        `,
+        methods: {
+            removeJob() {
+                this.$emit('remove-job', _.cloneDeep(this.job));
+            }
+        }
+    });
+
+    Vue.component('addplcjob', {
+        props: ['availableSources'],
+        template: `
+            <li>
+                <input type="text" placeholder="name" v-model="newJob.name">&nbsp;
+                <input type="text" placeholder="trigger config" v-model="newJob.triggerConfig"><br/>
+                Sources:
+                <ul>
+                    <li v-for="source in newJob.sources" :key="source">{{ source }} <button @click="removeSource(source)" class="btn btn-sm">Remove source</button></li>
+                    <li><select v-model="selectedAvailableSource"><option v-for="availableSource in availableSources">{{ availableSource.alias }}</option></select> <button @click="addAvailableSource" class="btn btn-sm">Add available source</button></li>
+                </ul>
+                Fields:
+                <ul>
+                    <li v-for="field in newJob.fields" :key="field.tag">{{ field.tag }}:{{ field.address }} <button @click="removeField(field.tag)">Remove field</button></li>
+                    <li><input type="text" placeholder="tag" v-model="newField.tag">:<input type="text" placeholder="address" v-model="newField.address"> <button @click="addField" class="btn btn-sm">Add field</button></li>
+                </ul>
+                <button @click="addJob" class="btn btn-sm">Add job</button>
+            </li>
+        `,
+        data() {
+            return {
+                newJob: {
+                    name: "",
+                    triggerConfig: "(SCHEDULED,100)",
+                    sources: [],
+                    fields: []
+                },
+                selectedAvailableSource: "",
+                newField: {
+                    tag: "",
+                    address: ""
+                }
+            }
+        },
+        methods: {
+            addAvailableSource() {
+                if (this.newJob.sources.indexOf(this.selectedAvailableSource) === -1) {
+                    this.newJob.sources.push(this.selectedAvailableSource);
+                }
+            },
+            removeSource(source) {
+                this.newJob.sources.splice(this.newJob.sources.findIndex(x => x == source), 1);
+            },
+            addField() {
+                if (this.newJob.fields.findIndex(x => x.tag == this.newField.tag) === -1) {
+                    this.newJob.fields.push({...this.newField});
+                }
+            },
+            removeField(tag) {
+                this.newJob.fields.splice(this.newJob.fields.findIndex(x => x.tag == tag), 1);
+            },
+            addJob() {
+                this.$emit('add-job', _.cloneDeep(this.newJob));
+            }
+        }
+    });
+
     var app = new Vue({
         el: '#app',
         data: {
-            latest: ""
+            latest: "",
+            scraperConfig: {
+                sources: [{
+                    alias: "S7",
+                    connectionString: "s7://172.30.74.65/0/0"
+                }],
+                jobs: [
+                    {
+                        name: "example",
+                        triggerConfig: "(SCHEDULED,100)",
+                        sources: ["S7"],
+                        fields: [{tag: "Int", address: "%DB101.DBW78:INT"}, {tag: "DInt", address: "%DB101.DBD80:DINT"}]
+                    }
+                ]
+            }
         },
         methods: {
             startScraper: function () {
@@ -31,13 +208,36 @@
                 console.log("stop scraper");
                 axios.post("/scraper-service/stop");
             },
+            updateScraper: function (configObject) {
+                console.log("update scraper");
+                axios.post("/scraper-service/update", toScraperConfig(configObject));
+            },
             getLatest: function () {
                 var vue = this;
                 console.log("get latest");
                 axios.get("/scraper-service/latest").then(function (response) {
-                   console.log(response);
-                   vue.latest = response.data;
+                    console.log(response);
+                    vue.latest = response.data;
                 });
+            },
+            addSource(event) {
+                var index = this.scraperConfig.sources.findIndex(x => x.alias == event.alias);
+                if (index === -1) {
+                    this.scraperConfig.sources.push({...event});
+                }
+            },
+            removeSource(event) {
+                this.scraperConfig.sources.splice(this.scraperConfig.sources.indexOf(event), 1);
+            },
+            addJob(event) {
+                var index = this.scraperConfig.jobs.findIndex(x => x.name == event.name);
+                if (index === -1) {
+                    this.scraperConfig.jobs.push({...event});
+                }
+            },
+            removeJob(event) {
+                var index = this.scraperConfig.jobs.findIndex(x => x.name == event.name);
+                this.scraperConfig.jobs.splice(index, 1);
             }
         }
     });
