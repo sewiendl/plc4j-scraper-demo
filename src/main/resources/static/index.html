@@ -15,12 +15,46 @@
     <button v-on:click="stopScraper">Stop Scraper</button>
     <button v-on:click="getLatest">Get Latest</button>
     <p>Latest: {{ latest }}</p>
+    <p>
+        <button v-on:click="updateScraper(scraperConfig)">Update Scraper</button>
+    </p>
 </div>
 <script>
+    function toScraperConfig(configObject) {
+        var sources = Object.assign({}, ...(configObject.sources.map(item => ({[item.alias]: item.connectionString}))));
+        var jobs = configObject.jobs.map(item => ({
+            name: item.name,
+            triggerConfig: item.triggerConfig,
+            sources: item.sources,
+            fields: Object.assign({}, ...(item.fields.map(fieldItem => ({[fieldItem.tag]: fieldItem.address}))))
+            // fields: Object.assign({}, ...(item.fields.map(fieldItem => ({[fieldItem[tag]]: fieldItem[address]}))))
+        }));
+        var retVal = {
+            sources: sources,
+            jobs: jobs
+        };
+        console.log("scraperConfig ", retVal);
+        return retVal; // TODO
+    }
+
     var app = new Vue({
         el: '#app',
         data: {
-            latest: ""
+            latest: "",
+            scraperConfig: {
+                sources: [{
+                    "alias": "S7",
+                    "connectionString": "s7://172.30.74.65/0/0"
+                }],
+                jobs: [
+                    {
+                        "name": "example",
+                        "triggerConfig": "(SCHEDULED,100)",
+                        "sources": ["S7"],
+                        "fields": [{tag: "Int", address: "%DB101.DBW78:INT"}, {tag: "DInt", address: "%DB101.DBD80:DINT"}]
+                    }
+                ]
+            }
         },
         methods: {
             startScraper: function () {
@@ -31,12 +65,16 @@
                 console.log("stop scraper");
                 axios.post("/scraper-service/stop");
             },
+            updateScraper: function (configObject) {
+                console.log("update scraper");
+                axios.post("/scraper-service/update", toScraperConfig(configObject));
+            },
             getLatest: function () {
                 var vue = this;
                 console.log("get latest");
                 axios.get("/scraper-service/latest").then(function (response) {
-                   console.log(response);
-                   vue.latest = response.data;
+                    console.log(response);
+                    vue.latest = response.data;
                 });
             }
         }

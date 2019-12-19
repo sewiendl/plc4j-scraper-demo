@@ -1,42 +1,56 @@
 package com.example.plc4jscraperdemo;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.plc4x.java.scraper.Scraper;
-import org.springframework.jmx.export.annotation.ManagedAttribute;
-import org.springframework.jmx.export.annotation.ManagedOperation;
-import org.springframework.jmx.export.annotation.ManagedResource;
+import org.apache.plc4x.java.scraper.config.ScraperConfiguration;
+import org.apache.plc4x.java.scraper.exception.ScraperException;
 import org.springframework.stereotype.Component;
 
 @Component
-@ManagedResource
+@Slf4j
 public class ScraperService {
 
-    private final Scraper scraper;
+    private final ScraperFactory scraperFactory;
+
+    private Scraper scraper;
 
     private final Object lock = new Object();
 
-    public ScraperService(Scraper scraper) {
-        this.scraper = scraper;
+    public ScraperService(ScraperFactory scraperFactory) {
+        this.scraperFactory = scraperFactory;
     }
 
-    @ManagedOperation
     public void start() {
         synchronized (lock) {
-            if (scraper.getNumberOfActiveTasks() == 0) {
+            log.debug("start()");
+            if (scraper != null && scraper.getNumberOfActiveTasks() == 0) {
                 scraper.start();
             }
         }
     }
 
-    @ManagedOperation
     public void stop() {
         synchronized (lock) {
-            scraper.stop();
+            log.debug("stop()");
+            if (scraper != null) {
+                scraper.stop();
+            }
         }
     }
 
-    @ManagedAttribute
-    public int getNumberOfActiveTasks() {
-        return scraper.getNumberOfActiveTasks();
+    public void update(ScraperConfiguration scraperConfiguration) throws ScraperException {
+        synchronized (lock) {
+            log.debug("update()");
+            boolean isRunning = false;
+            if (scraper != null) {
+                isRunning = scraper.getNumberOfActiveTasks() > 0;
+            }
+            stop();
+            scraper = scraperFactory.get(scraperConfiguration);
+            if (isRunning) {
+                start();
+            }
+        }
     }
 
 }
