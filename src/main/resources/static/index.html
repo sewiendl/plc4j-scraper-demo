@@ -136,7 +136,7 @@
                 </ul>
                 Fields:
                 <ul>
-                    <li v-for="field in newJob.fields" :key="field.tag">{{ field.tag }}:{{ field.address }} <button @click="removeField(field.tag)">Remove field</button></li>
+                    <li v-for="field in newJob.fields" :key="field.tag">{{ field.tag }}:{{ field.address }} <button @click="removeField(field.tag)" class="btn btn-sm">Remove field</button></li>
                     <li><input type="text" placeholder="tag" v-model="newField.tag">:<input type="text" placeholder="address" v-model="newField.address"> <button @click="addField" class="btn btn-sm">Add field</button></li>
                 </ul>
                 <button @click="addJob" class="btn btn-sm">Add job</button>
@@ -188,13 +188,27 @@
                 sources: [{
                     alias: "S7",
                     connectionString: "s7://172.30.74.65/0/0"
+                },
+                {
+                    alias: "S7NG",
+                    connectionString: "s7ng://172.30.74.65/0/0"
                 }],
                 jobs: [
                     {
                         name: "example",
                         triggerConfig: "(SCHEDULED,100)",
-                        sources: ["S7"],
-                        fields: [{tag: "Int", address: "%DB101.DBW78:INT"}, {tag: "DInt", address: "%DB101.DBD80:DINT"}]
+                        sources: ["S7NG"],
+                        fields: [
+                            {tag: "Int", address: "%DB101.DBW78:INT"},
+                            {tag: "DInt", address: "%DB101.DBD80:DINT"},
+                            {tag: "SinusReal", address: "%DB101.DBD118:REAL"},
+                            {tag: "String", address: "%DB101.DBX124:STRING"},
+                            {tag: "NegativeInt", address: "%DB101.DBW380:INT"},
+                            {tag: "I0.0", address: "%I0.0:BOOL"},
+                            {tag: "Q0.0", address: "%Q0.0:BOOL"},
+                            {tag: "Merkerbit", address: "%M0.1:BOOL"},
+                            {tag: "MerkerInt", address: "%MW2:INT"}
+                        ]
                     }
                 ]
             }

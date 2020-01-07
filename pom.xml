@@ -16,6 +16,7 @@
 
     <properties>
         <java.version>1.8</java.version>
+        <plc4j.version>0.6.0-SNAPSHOT</plc4j.version>
     </properties>
 
     <dependencies>
@@ -35,12 +36,17 @@
         <dependency>
             <groupId>org.apache.plc4x</groupId>
             <artifactId>plc4j-scraper</artifactId>
-            <version>0.5.0</version>
+            <version>${plc4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.plc4x</groupId>
             <artifactId>plc4j-driver-s7</artifactId>
-            <version>0.5.0</version>
+            <version>${plc4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.plc4x.sandbox</groupId>
+            <artifactId>test-java-s7-driver</artifactId>
+            <version>${plc4j.version}</version>
         </dependency>
 
         <dependency>
